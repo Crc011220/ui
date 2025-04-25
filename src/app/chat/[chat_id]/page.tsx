@@ -11,22 +11,34 @@ export default function Page() {
 
   const {chat_id} = useParams();
 
-  const { data: chat } = useQuery({
-    queryKey: ["chat", chat_id],
-    queryFn: async () => {
-      return axios.post(`/api/chat/${chat_id}`, {
-        chat_id: chat_id
-      })
+  const {data: chat} = useQuery({
+    queryKey: ['chat', chat_id],
+    queryFn: () => {
+        return axios.post(`/api/get-chat`, {
+            chat_id: chat_id
+        })
+    }
+})
+
+  const {data: previousMessages} = useQuery({
+    queryKey: ['messages', chat_id],
+    queryFn: () => {
+        return axios.post(`/api/get-messages`, {
+            chat_id: chat_id,
+            chat_user_id: chat?.data?.userId
+        })
     },
-  });
+    enabled: !!chat?.data?.id
+})
   
   const [model, setModel] = useState("deepseek-v3");
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, append } = useChat({
     body:{
       model: model,
       chat_id: chat_id,
       chat_user_id: chat?.data?.userId,
-    }
+    }, 
+    initialMessages: previousMessages?.data
   });
 
   const endRef = useRef<HTMLDivElement>(null);
@@ -39,6 +51,25 @@ export default function Page() {
   useEffect(() => {
     endRef?.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleFirstMessage = async (model: string) => {
+    if (chat?.data?.title && previousMessages?.data?.length === 0) {
+        console.log('model', model, chat?.data)
+        await append({
+            role: 'user',
+            content: chat?.data?.title
+        }), {
+            model: model,
+            chat_id: chat_id,
+            chat_user_id: chat?.data?.userId
+        }
+    }
+}
+
+useEffect(()=> {
+  setModel(chat?.data?.model)
+  handleFirstMessage(chat?.data?.model)
+}, [chat?.data?.title, previousMessages])
 
   return (
     <div className="flex flex-col h-screen justify-between items-center">

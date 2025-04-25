@@ -8,7 +8,7 @@ export async function POST(req: Request) {
 
 
     if (!userId) {
-        return new Response(JSON.stringify({error: 'Unauthorized'}), {status: 401})
+        return new Response(JSON.stringify({error: 'Unauthorized'}), {status: 403})
     }
 
     const chat = await getChat(chat_id, userId)
